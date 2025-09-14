@@ -1,11 +1,10 @@
 import os
 from PyQt6 import uic
 from PyQt6.QtWidgets import (
-    QApplication, QMainWindow, QHeaderView, QDialog
+    QApplication, QMainWindow, QHeaderView, QDialog, QWidget, QPushButton
 )
 
 def ui_path(filename):
-    # Returns the absolute path to the shared ui file
     return os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "ui", filename))
 
 class EventTimelineDialog(QDialog):
@@ -52,6 +51,22 @@ class OrgOfficerWindow(QMainWindow):
         super().__init__()
         uic.loadUi(os.path.join(os.path.dirname(__file__), "EventManager-OrgOfficer.ui"), self)
 
+        # Load Attendance.ui into the attendance page (page_2) in the stacked widget
+        attendance_widget = QWidget()
+        uic.loadUi(ui_path("Attendance.ui"), attendance_widget)
+        self.stackedWidget.removeWidget(self.stackedWidget.widget(1))  # Remove the empty page_2
+        self.stackedWidget.insertWidget(1, attendance_widget)
+        self.attendance_page = attendance_widget
+
+        # Connect "View Attendance" button to show attendance page
+        if hasattr(self, "ViewAttendanceButton"):
+            self.ViewAttendanceButton.clicked.connect(self.show_attendance_page)
+
+        # Connect Go Back button in attendance page
+        go_back_btn = self.attendance_page.findChild(QPushButton, "pushButton_4")
+        if go_back_btn:
+            go_back_btn.clicked.connect(self.show_main_page)
+
         # Make all table columns fit the table width and rows fit contents
         for table_name in [
             "PendingTable", "Events_table_3", "Events_table_4",
@@ -62,15 +77,17 @@ class OrgOfficerWindow(QMainWindow):
                 table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
                 table.resizeRowsToContents()
 
-        # Connect buttons to open dialogs
-        if hasattr(self, "pushButton_10"):
-            self.pushButton_10.clicked.connect(self.open_event_timeline)
-        if hasattr(self, "pushButton_19"):
-            self.pushButton_19.clicked.connect(self.open_request_reschedule)
-        if hasattr(self, "pushButton_3"):
-            self.pushButton_3.clicked.connect(self.open_request_proposal)
-        if hasattr(self, "pushButton_13"):
-            self.pushButton_13.clicked.connect(self.open_attendance_dialog)  # Example: View Attendance button
+        # Connect new dialog buttons
+        if hasattr(self, "RequestRescheduleButton"):
+            self.RequestRescheduleButton.clicked.connect(self.open_request_reschedule)
+        if hasattr(self, "RequestEventProposalButton"):
+            self.RequestEventProposalButton.clicked.connect(self.open_request_proposal)
+
+    def show_attendance_page(self):
+        self.stackedWidget.setCurrentIndex(1)  # Show attendance page
+
+    def show_main_page(self):
+        self.stackedWidget.setCurrentIndex(0)  # Show main page
 
     def open_event_timeline(self):
         dialog = EventTimelineDialog(self)
