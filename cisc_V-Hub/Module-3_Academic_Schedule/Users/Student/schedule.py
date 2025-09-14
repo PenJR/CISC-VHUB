@@ -6,7 +6,13 @@ from datetime import datetime
 class ScheduleWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        ui_path = os.path.join(os.path.dirname(__file__), "schedule.ui")
+        ui_path = os.path.abspath(
+            os.path.join(
+                os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
+                "ui",
+                "schedule.ui"
+            )
+        )
         uic.loadUi(ui_path, self)
 
         # Connect buttons to page switching
@@ -30,7 +36,14 @@ class ScheduleWindow(QMainWindow):
         self.stackedWidget.setCurrentIndex(0)  # Schedule page
 
 app = QApplication([])
-with open(os.path.join(os.path.dirname(os.path.dirname(__file__)), '..', 'styles', 'style.qss'), 'r') as f:
+style_path = os.path.abspath(
+    os.path.join(
+        os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
+        "styles",
+        "style.qss"
+    )
+)
+with open(style_path, 'r') as f:
     app.setStyleSheet(f.read())
 window = ScheduleWindow()
 window.show()

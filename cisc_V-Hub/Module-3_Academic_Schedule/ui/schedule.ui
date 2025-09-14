@@ -73,25 +73,6 @@
               </widget>
              </item>
              <item>
-              <widget class="QPushButton" name="WeekEdit">
-               <property name="minimumSize">
-                <size>
-                 <width>70</width>
-                 <height>30</height>
-                </size>
-               </property>
-               <property name="maximumSize">
-                <size>
-                 <width>70</width>
-                 <height>30</height>
-                </size>
-               </property>
-               <property name="text">
-                <string>Edit</string>
-               </property>
-              </widget>
-             </item>
-             <item>
               <widget class="QComboBox" name="Semester">
                <property name="minimumSize">
                 <size>
@@ -340,11 +321,6 @@
               <string>7:00 PM</string>
              </property>
             </row>
-            <column>
-             <property name="text">
-              <string/>
-             </property>
-            </column>
            </widget>
           </item>
          </layout>
@@ -406,7 +382,31 @@
        <enum>QFrame::StyledPanel</enum>
       </property>
       <layout class="QVBoxLayout" name="verticalLayout_5">
-       <item alignment="Qt::AlignHCenter|Qt::AlignTop">
+       <item alignment="Qt::AlignRight">
+        <widget class="QComboBox" name="YearBox">
+         <item>
+          <property name="text">
+           <string>1st Year</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>2nd Year</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>3rd Year</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>4th Year</string>
+          </property>
+         </item>
+        </widget>
+       </item>
+       <item alignment="Qt::AlignHCenter">
         <widget class="QLabel" name="FirstYearHeader">
          <property name="text">
           <string>First Year</string>
