@@ -19,8 +19,8 @@ class RequestProposalDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         uic.loadUi(ui_path("Request Event Proposal.ui"), self)
-        if hasattr(self, "pushButton"):
-            self.pushButton.clicked.connect(self.open_event_timeline)
+        if hasattr(self, "ViewEventTimeline"):
+            self.ViewEventTimeline.clicked.connect(self.open_event_timeline)
 
     def open_event_timeline(self):
         dialog = EventTimelineDialog(self)
@@ -30,8 +30,8 @@ class RequestRescheduleDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         uic.loadUi(ui_path("Request Event Reschedule.ui"), self)
-        if hasattr(self, "pushButton"):
-            self.pushButton.clicked.connect(self.open_event_timeline)
+        if hasattr(self, "ViewEventTimeline"):
+            self.ViewEventTimeline.clicked.connect(self.open_event_timeline)
 
     def open_event_timeline(self):
         dialog = EventTimelineDialog(self)
@@ -52,23 +52,12 @@ class FacultyWindow(QMainWindow):
         super().__init__()
         uic.loadUi(os.path.join(os.path.dirname(__file__), "EventManager-Faculty.ui"), self)
 
-        # Make all table columns fit the table width and rows fit contents
-        for table_name in [
-            "PendingTable", "Events_table_3", "Events_table_4",
-            "Events_table_6", "Events_table_7", "tableWidget"
-        ]:
-            table = getattr(self, table_name, None)
-            if table:
-                table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
-                table.resizeRowsToContents()
-
-        # Connect buttons to open dialogs
-        if hasattr(self, "pushButton_10"):
-            self.pushButton_10.clicked.connect(self.open_event_timeline)
-        if hasattr(self, "pushButton_19"):
-            self.pushButton_19.clicked.connect(self.open_request_reschedule)
-        if hasattr(self, "pushButton_3"):
-            self.pushButton_3.clicked.connect(self.open_request_proposal)
+        # Wire signals via controller
+        try:
+            from controller.module6.event_manager_controller import wire_faculty_signals
+            wire_faculty_signals(self, self.open_event_timeline, self.open_request_reschedule, self.open_request_proposal)
+        except Exception:
+            pass
 
     def open_event_timeline(self):
         dialog = EventTimelineDialog(self)
@@ -84,6 +73,11 @@ class FacultyWindow(QMainWindow):
 
 if __name__ == "__main__":
     app = QApplication([])
+    project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+    style_qss = os.path.join(project_root, "styles", "style.qss")
+    if os.path.exists(style_qss):
+        with open(style_qss, 'r', encoding='utf-8') as f:
+            app.setStyleSheet(f.read())
     window = FacultyWindow()
     window.show()
     app.exec()

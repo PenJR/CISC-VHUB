@@ -6,18 +6,23 @@ from datetime import datetime
 class ScheduleWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        ui_path = os.path.abspath(
-            os.path.join(
-                os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
-                "ui",
-                "schedule.ui"
+        # Updated path to shared ui folder
+        project_root = os.path.dirname(
+            os.path.dirname(
+                os.path.dirname(
+                    os.path.dirname(__file__)
+                )
             )
         )
+        ui_path = os.path.join(project_root, "ui", "schedule.ui")
         uic.loadUi(ui_path, self)
 
-        # Connect buttons to page switching
-        self.viewCurriculum.clicked.connect(self.show_curriculum_page)
-        self.Return.clicked.connect(self.show_schedule_page)
+        # Wire signals via controller
+        try:
+            from controller.module3.schedule_controller import wire_schedule_signals
+            wire_schedule_signals(self)
+        except Exception:
+            pass
 
         # Ensure all QTableWidgets' columns fit the table width
         self.WeekTable_2.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
@@ -36,15 +41,17 @@ class ScheduleWindow(QMainWindow):
         self.stackedWidget.setCurrentIndex(0)  # Schedule page
 
 app = QApplication([])
-style_path = os.path.abspath(
-    os.path.join(
-        os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
-        "styles",
-        "style_schedule.qss"
+project_root = os.path.dirname(
+    os.path.dirname(
+        os.path.dirname(
+            os.path.dirname(__file__)
+        )
     )
 )
-with open(style_path, 'r') as f:
-    app.setStyleSheet(f.read())
+style_qss = os.path.join(project_root, "styles", "style.qss")
+if os.path.exists(style_qss):
+    with open(style_qss, 'r', encoding='utf-8') as f:
+        app.setStyleSheet(f.read())
 window = ScheduleWindow()
 window.show()
 app.exec()

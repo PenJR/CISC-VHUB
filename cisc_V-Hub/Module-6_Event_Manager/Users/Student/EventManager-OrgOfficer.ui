@@ -322,7 +322,7 @@
                 </widget>
                </item>
                <item>
-                <widget class="QPushButton" name="ReschduleButton">
+                <widget class="QPushButton" name="RejectedButton_2">
                  <property name="text">
                   <string>Rejected Proposals</string>
                  </property>

@@ -33,14 +33,14 @@
         <widget class="QFrame" name="WeekFrame2_2">
          <layout class="QHBoxLayout" name="horizontalLayout_2">
           <item>
-           <widget class="QLabel" name="label_2">
+           <widget class="QLabel" name="EventTimelineHeader">
             <property name="text">
              <string>Event Timeline</string>
             </property>
            </widget>
           </item>
           <item>
-           <widget class="QPushButton" name="viewCurriculum">
+           <widget class="QPushButton" name="Event_Add">
             <property name="minimumSize">
              <size>
               <width>120</width>
@@ -59,7 +59,7 @@
            </widget>
           </item>
           <item>
-           <widget class="QPushButton" name="WeekEdit">
+           <widget class="QPushButton" name="Event_Delete">
             <property name="minimumSize">
              <size>
               <width>70</width>
@@ -78,7 +78,7 @@
            </widget>
           </item>
           <item>
-           <widget class="QPushButton" name="WeekEdit_2">
+           <widget class="QPushButton" name="Event_Edit">
             <property name="minimumSize">
              <size>
               <width>70</width>

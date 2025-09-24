@@ -688,13 +688,6 @@
               </column>
              </widget>
             </item>
-            <item>
-             <widget class="QPushButton" name="pushButton_22">
-              <property name="text">
-               <string>View Attendance</string>
-              </property>
-             </widget>
-            </item>
            </layout>
           </widget>
          </widget>
@@ -702,7 +695,7 @@
        </item>
       </layout>
      </widget>
-     <widget class="QPushButton" name="pushButton_19">
+     <widget class="QPushButton" name="RequestRescheduleButton">
       <property name="geometry">
        <rect>
         <x>540</x>

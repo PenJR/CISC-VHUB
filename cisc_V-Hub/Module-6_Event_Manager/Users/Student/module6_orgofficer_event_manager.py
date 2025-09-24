@@ -18,8 +18,8 @@ class RequestProposalDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         uic.loadUi(ui_path("Request Event Proposal.ui"), self)
-        if hasattr(self, "pushButton"):
-            self.pushButton.clicked.connect(self.open_event_timeline)
+        if hasattr(self, "ViewEventTimeline"):
+            self.ViewEventTimeline.clicked.connect(self.open_event_timeline)
 
     def open_event_timeline(self):
         dialog = EventTimelineDialog(self)
@@ -29,8 +29,8 @@ class RequestRescheduleDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         uic.loadUi(ui_path("Request Event Reschedule.ui"), self)
-        if hasattr(self, "pushButton"):
-            self.pushButton.clicked.connect(self.open_event_timeline)
+        if hasattr(self, "ViewEventTimeline"):
+            self.ViewEventTimeline.clicked.connect(self.open_event_timeline)
 
     def open_event_timeline(self):
         dialog = EventTimelineDialog(self)
@@ -51,21 +51,14 @@ class OrgOfficerWindow(QMainWindow):
         super().__init__()
         uic.loadUi(os.path.join(os.path.dirname(__file__), "EventManager-OrgOfficer.ui"), self)
 
-        # Load Attendance.ui into the attendance page (page_2) in the stacked widget
-        attendance_widget = QWidget()
-        uic.loadUi(ui_path("Attendance.ui"), attendance_widget)
-        self.stackedWidget.removeWidget(self.stackedWidget.widget(1))  # Remove the empty page_2
-        self.stackedWidget.insertWidget(1, attendance_widget)
-        self.attendance_page = attendance_widget
+        # Attendance will be lazy-loaded by the controller when needed
 
-        # Connect "View Attendance" button to show attendance page
-        if hasattr(self, "ViewAttendanceButton"):
-            self.ViewAttendanceButton.clicked.connect(self.show_attendance_page)
-
-        # Connect Go Back button in attendance page
-        go_back_btn = self.attendance_page.findChild(QPushButton, "pushButton_4")
-        if go_back_btn:
-            go_back_btn.clicked.connect(self.show_main_page)
+        # Wire common table sizing and signals via controller
+        try:
+            from controller.module6.event_manager_controller import wire_org_officer_signals
+            wire_org_officer_signals(self, ui_path)
+        except Exception:
+            pass
 
         # Make all table columns fit the table width and rows fit contents
         for table_name in [
@@ -107,6 +100,11 @@ class OrgOfficerWindow(QMainWindow):
 
 if __name__ == "__main__":
     app = QApplication([])
+    project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+    style_qss = os.path.join(project_root, "styles", "style.qss")
+    if os.path.exists(style_qss):
+        with open(style_qss, 'r', encoding='utf-8') as f:
+            app.setStyleSheet(f.read())
     window = OrgOfficerWindow()
     window.show()
     app.exec()

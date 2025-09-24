@@ -41,7 +41,7 @@
       </property>
       <layout class="QVBoxLayout" name="verticalLayout_8">
        <item alignment="Qt::AlignRight">
-        <widget class="QComboBox" name="YearBox_4">
+        <widget class="QComboBox" name="YearBox">
          <item>
           <property name="text">
            <string>1st Year</string>
@@ -65,7 +65,7 @@
         </widget>
        </item>
        <item alignment="Qt::AlignHCenter">
-        <widget class="QLabel" name="FirstYearHeader_4">
+        <widget class="QLabel" name="YearHeader_4">
          <property name="text">
           <string>First Year</string>
          </property>
@@ -88,14 +88,14 @@
          </property>
          <layout class="QHBoxLayout" name="horizontalLayout_7">
           <item alignment="Qt::AlignHCenter">
-           <widget class="QLabel" name="TodaySched_12">
+           <widget class="QLabel" name="Semester1">
             <property name="text">
              <string>1st Semester</string>
             </property>
            </widget>
           </item>
           <item alignment="Qt::AlignHCenter">
-           <widget class="QLabel" name="TodaySched_13">
+           <widget class="QLabel" name="Semester2">
             <property name="layoutDirection">
              <enum>Qt::RightToLeft</enum>
             </property>
@@ -179,7 +179,7 @@
        </item>
       </layout>
      </widget>
-     <widget class="QLabel" name="label">
+     <widget class="QLabel" name="CurriculumTitle">
       <property name="geometry">
        <rect>
         <x>46</x>

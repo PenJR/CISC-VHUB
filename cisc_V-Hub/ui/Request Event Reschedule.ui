@@ -81,8 +81,8 @@
             </property>
            </widget>
           </item>
-          <item alignment="Qt::AlignLeft|Qt::AlignBottom">
-           <widget class="QLineEdit" name="lineEdit"/>
+          <item>
+           <widget class="QComboBox" name="comboBox_4"/>
           </item>
           <item>
            <widget class="QLabel" name="label_8">
@@ -113,12 +113,22 @@
           <item>
            <widget class="QLabel" name="label_6">
             <property name="text">
-             <string>Date And Time</string>
+             <string>Date</string>
             </property>
            </widget>
           </item>
           <item>
-           <widget class="QDateTimeEdit" name="dateTimeEdit"/>
+           <widget class="QDateEdit" name="dateEdit"/>
+          </item>
+          <item>
+           <widget class="QLabel" name="label_12">
+            <property name="text">
+             <string> Time</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QTimeEdit" name="timeEdit"/>
           </item>
           <item>
            <widget class="QLabel" name="label_10">
@@ -163,9 +173,9 @@
      </widget>
     </item>
     <item alignment="Qt::AlignRight">
-     <widget class="QPushButton" name="pushButton">
+     <widget class="QPushButton" name="ViewEventTimeline">
       <property name="text">
-       <string>PushButton</string>
+       <string>Event Timeline</string>
       </property>
      </widget>
     </item>
