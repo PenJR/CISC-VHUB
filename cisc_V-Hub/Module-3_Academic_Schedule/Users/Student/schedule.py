@@ -40,7 +40,7 @@ style_path = os.path.abspath(
     os.path.join(
         os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
         "styles",
-        "style.qss"
+        "style_schedule.qss"
     )
 )
 with open(style_path, 'r') as f:

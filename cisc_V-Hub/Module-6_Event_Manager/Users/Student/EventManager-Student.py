@@ -5,8 +5,8 @@ from PyQt6.QtWidgets import (
 )
 
 def ui_path(filename):
-    # Returns the absolute path to the shared ui file
-    return os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "ui", filename))
+    # Returns the absolute path to the shared ui file at project root
+    return os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "ui", filename))
 
 class EventManagerStudent(QMainWindow):
     def __init__(self):

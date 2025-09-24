@@ -5,7 +5,7 @@ from PyQt6.QtWidgets import (
 )
 
 def ui_path(filename):
-    return os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "ui", filename))
+    return os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "ui", filename))
 
 class EventTimelineDialog(QDialog):
     def __init__(self, parent=None):
