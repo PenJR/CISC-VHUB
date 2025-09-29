@@ -15,11 +15,13 @@ class EventTimelineDialog(QDialog):
             self.WeekTable_2.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         # Hook Add to persist with requested event name if available
         try:
-            from service.event_timeline_service import add_timeline_item, load_timeline
+            from service.event_timeline_service import add_timeline_item, load_timeline, update_timeline_item, delete_timeline_item
             from service.event_proposal_service import list_proposals
         except Exception:
             add_timeline_item = None
             load_timeline = None
+            update_timeline_item = None
+            delete_timeline_item = None
             list_proposals = None
         # Default to first saved proposal as the current event
         self._requested_event = None
@@ -29,6 +31,10 @@ class EventTimelineDialog(QDialog):
                 self._requested_event = proposals[0].get("eventName")
         if hasattr(self, "Event_Add") and add_timeline_item:
             self.Event_Add.clicked.connect(lambda: self._add_timeline(add_timeline_item))
+        if hasattr(self, "Event_Edit") and update_timeline_item:
+            self.Event_Edit.clicked.connect(lambda: self._edit_timeline(update_timeline_item))
+        if hasattr(self, "Event_Delete") and delete_timeline_item:
+            self.Event_Delete.clicked.connect(lambda: self._delete_timeline(delete_timeline_item))
         # Render existing timeline for current event
         if load_timeline and hasattr(self, "WeekTable_2") and self._requested_event:
             data = load_timeline(self._requested_event)
@@ -91,6 +97,47 @@ class EventTimelineDialog(QDialog):
                     break
             if row >= 0 and col >= 0:
                 table.setItem(row, col, QTableWidgetItem(activity))
+
+    def _edit_timeline(self, update_func):
+        table = getattr(self, "WeekTable_2", None)
+        if table is None:
+            return
+        row = table.currentRow()
+        col = table.currentColumn()
+        if row < 0 or col < 0:
+            return
+        v_item = table.verticalHeaderItem(row)
+        h_item = table.horizontalHeaderItem(col)
+        time_label = v_item.text() if v_item else ""
+        day_label = h_item.text() if h_item else ""
+        if not time_label or not day_label:
+            return
+        current_item = table.item(row, col)
+        current_text = current_item.text() if current_item else ""
+        text, ok = QInputDialog.getText(self, "Edit Timeline Item", f"Edit activity for {day_label} @ {time_label}:", text=current_text)
+        if not ok:
+            return
+        hhmm = self._to_24h(time_label)
+        if update_func(day_label, hhmm, text, self._requested_event):
+            table.setItem(row, col, QTableWidgetItem(text))
+
+    def _delete_timeline(self, delete_func):
+        table = getattr(self, "WeekTable_2", None)
+        if table is None:
+            return
+        row = table.currentRow()
+        col = table.currentColumn()
+        if row < 0 or col < 0:
+            return
+        v_item = table.verticalHeaderItem(row)
+        h_item = table.horizontalHeaderItem(col)
+        time_label = v_item.text() if v_item else ""
+        day_label = h_item.text() if h_item else ""
+        if not time_label or not day_label:
+            return
+        hhmm = self._to_24h(time_label)
+        if delete_func(day_label, hhmm, self._requested_event):
+            table.setItem(row, col, QTableWidgetItem(""))
 
 class RequestProposalDialog(QDialog):
     def __init__(self, parent=None):
