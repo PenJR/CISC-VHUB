@@ -53,8 +53,34 @@
                </property>
               </widget>
              </item>
+             <item alignment="Qt::AlignRight">
+              <widget class="QLineEdit" name="StudentSearch">
+               <property name="placeholderText">
+                <string>Enter Student ID</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QPushButton" name="Search">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Maximum" vsizetype="Maximum">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="text">
+                <string>Search</string>
+               </property>
+              </widget>
+             </item>
              <item>
               <widget class="QPushButton" name="viewCurriculum">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Minimum" vsizetype="Maximum">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
                <property name="minimumSize">
                 <size>
                  <width>120</width>
@@ -74,6 +100,12 @@
              </item>
              <item>
               <widget class="QComboBox" name="Semester">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
                <property name="minimumSize">
                 <size>
                  <width>120</width>
@@ -354,19 +386,6 @@
       </property>
       <property name="text">
        <string>Go Back</string>
-      </property>
-     </widget>
-     <widget class="QLabel" name="label">
-      <property name="geometry">
-       <rect>
-        <x>30</x>
-        <y>30</y>
-        <width>91</width>
-        <height>21</height>
-       </rect>
-      </property>
-      <property name="text">
-       <string>Curriculum</string>
       </property>
      </widget>
      <widget class="QFrame" name="frame1stYear">
