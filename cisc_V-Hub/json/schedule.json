@@ -1,0 +1,27 @@
+{
+  "studentId": "2025-00001",
+  "semester": "1st Semester",
+  "weekly": {
+    "Sunday": [],
+    "Monday": [
+      {"time": "07:00", "subject": "CS102", "room": "B101"},
+      {"time": "09:00", "subject": "MATH102", "room": "A201"}
+    ],
+    "Tuesday": [
+      {"time": "10:00", "subject": "HIST101", "room": "C303"}
+    ],
+    "Wednesday": [
+      {"time": "13:00", "subject": "PE101", "room": "GYM"}
+    ],
+    "Thursday": [],
+    "Friday": [
+      {"time": "08:00", "subject": "ENG101", "room": "A105"}
+    ],
+    "Saturday": []
+  },
+  "today": [
+    {"time": "08:00", "subject": "ENG101", "room": "A105"},
+    {"time": "10:00", "subject": "HIST101", "room": "C303"}
+  ]
+}
+

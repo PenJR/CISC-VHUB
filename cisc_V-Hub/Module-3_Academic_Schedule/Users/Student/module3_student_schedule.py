@@ -6,6 +6,8 @@ from datetime import datetime
 class ScheduleWindow(QMainWindow):
     def __init__(self):
         super().__init__()
+        # Tag role for controller visibility logic
+        self.user_role = "student"
         project_root = os.path.dirname(
             os.path.dirname(
                 os.path.dirname(

@@ -1,7 +1,7 @@
 import os
 from PyQt6 import uic
 from PyQt6.QtWidgets import (
-    QApplication, QMainWindow, QHeaderView, QDialog
+    QApplication, QMainWindow, QHeaderView, QDialog, QInputDialog, QTableWidgetItem
 )
 
 def ui_path(filename):
@@ -14,15 +14,161 @@ class EventTimelineDialog(QDialog):
         uic.loadUi(ui_path("Event Timeline.ui"), self)
         if hasattr(self, "WeekTable_2"):
             self.WeekTable_2.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        # Hook Add to persist timeline item
+        try:
+            from service.event_timeline_service import add_timeline_item, load_timeline
+            from service.event_proposal_service import load_proposal
+        except Exception:
+            add_timeline_item = None
+            load_timeline = None
+            load_proposal = None
+        if hasattr(self, "Event_Add") and add_timeline_item:
+            self.Event_Add.clicked.connect(lambda: self._add_timeline(add_timeline_item))
+        # Load existing timeline for requested event into table
+        if load_timeline and hasattr(self, "WeekTable_2"):
+            event_name = None
+            if load_proposal:
+                prop = load_proposal() or {}
+                event_name = prop.get("eventName")
+            data = load_timeline(event_name)
+            self._render_timeline_table(data)
+
+    def _add_timeline(self, add_func):
+        # Require a selected cell to infer day/time
+        table = getattr(self, "WeekTable_2", None)
+        if table is None or not hasattr(table, "currentRow"):
+            return
+        row = table.currentRow()
+        col = table.currentColumn()
+        if row < 0 or col < 0:
+            return
+        # Extract headers for time/day
+        v_item = table.verticalHeaderItem(row)
+        h_item = table.horizontalHeaderItem(col)
+        time_label = v_item.text() if v_item else ""
+        day_label = h_item.text() if h_item else ""
+        if not time_label or not day_label:
+            return
+        # Ask for activity text
+        text, ok = QInputDialog.getText(self, "Add Timeline Item", f"Activity for {day_label} @ {time_label}:")
+        if not ok or not text.strip():
+            return
+        # Convert time label like '7:00 AM' to 24h '07:00'
+        hhmm = self._to_24h(time_label)
+        # Attach event name if present
+        event_name = None
+        try:
+            from service.event_proposal_service import load_proposal
+            prop = load_proposal() or {}
+            event_name = prop.get("eventName")
+        except Exception:
+            pass
+        add_func(day_label, hhmm, text.strip(), event_name)
+        # Reflect in UI
+        table.setItem(row, col, QTableWidgetItem(text.strip()))
+
+    def _to_24h(self, label: str) -> str:
+        try:
+            from datetime import datetime
+            dt = datetime.strptime(label.replace("\u200f", "").strip(), "%I:%M %p")
+            return dt.strftime("%H:%M")
+        except Exception:
+            return label
+
+    def _render_timeline_table(self, data):
+        table = getattr(self, "WeekTable_2", None)
+        if table is None:
+            return
+        items = data.get("timeline", [])
+        # We rely on headers to map day/time
+        for item in items:
+            day = item.get("day")
+            time = item.get("time")
+            activity = item.get("activity", "")
+            # Convert time to display header
+            try:
+                from datetime import datetime
+                label = datetime.strptime(time, "%H:%M").strftime("%I:%M %p").lstrip("0")
+            except Exception:
+                label = time
+            # Find indices
+            # vertical headers are times, horizontal headers are days
+            row = -1
+            col = -1
+            for r in range(table.rowCount()):
+                vh = table.verticalHeaderItem(r)
+                if vh and vh.text() == label:
+                    row = r
+                    break
+            for c in range(table.columnCount()):
+                hh = table.horizontalHeaderItem(c)
+                if hh and hh.text() == day:
+                    col = c
+                    break
+            if row >= 0 and col >= 0:
+                table.setItem(row, col, QTableWidgetItem(activity))
 
 class RequestProposalDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         uic.loadUi(ui_path("Request Event Proposal.ui"), self)
         if hasattr(self, "ViewEventTimeline"):
-            self.ViewEventTimeline.clicked.connect(self.open_event_timeline)
+            self.ViewEventTimeline.clicked.connect(self._save_and_open_event_timeline)
+        # Populate dropdowns
+        self._populate_dropdowns()
 
-    def open_event_timeline(self):
+    def _populate_dropdowns(self):
+        try:
+            from service.events_metadata_service import load_buildings, load_rooms, load_organizers
+        except Exception:
+            return
+        # Buildings -> comboBox
+        if hasattr(self, "comboBox"):
+            self.comboBox.clear()
+            buildings = load_buildings()
+            for b in buildings:
+                self.comboBox.addItem(b.get("name", ""), b.get("id"))
+        # Rooms -> comboBox_3 (filtered by selected building)
+        def refresh_rooms():
+            if not hasattr(self, "comboBox_3"):
+                return
+            self.comboBox_3.clear()
+            sel_building_id = None
+            if hasattr(self, "comboBox") and hasattr(self.comboBox, "currentData"):
+                sel_building_id = self.comboBox.currentData()
+            rooms = load_rooms(sel_building_id)
+            for r in rooms:
+                self.comboBox_3.addItem(r.get("name", ""))
+        if hasattr(self, "comboBox") and hasattr(self.comboBox, "currentIndexChanged"):
+            self.comboBox.currentIndexChanged.connect(lambda _: refresh_rooms())
+        refresh_rooms()
+        # Organizers -> comboBox_2
+        if hasattr(self, "comboBox_2"):
+            self.comboBox_2.clear()
+            for org in load_organizers():
+                self.comboBox_2.addItem(org.get("name", ""), org.get("id"))
+
+    def _save_and_open_event_timeline(self):
+        # Save proposal so it becomes available for reschedule dropdowns
+        try:
+            from service.event_proposal_service import save_proposal, add_proposal
+        except Exception:
+            save_proposal = None
+            add_proposal = None
+        if save_proposal:
+            payload = {
+                "eventName": getattr(self.lineEdit, "text", lambda: "")(),
+                "building": getattr(self.comboBox, "currentText", lambda: "")(),
+                "description": getattr(self.lineEdit_2, "text", lambda: "")(),
+                "date": getattr(self.dateEdit, "date", lambda: None)().toString("yyyy-MM-dd") if hasattr(self, "dateEdit") else "",
+                "time": getattr(self.timeEdit, "time", lambda: None)().toString("HH:mm") if hasattr(self, "timeEdit") else "",
+                "roomName": getattr(self.comboBox_3, "currentText", lambda: "")(),
+                "organizer": getattr(self.comboBox_2, "currentText", lambda: "")(),
+                "budget": getattr(self.doubleSpinBox, "value", lambda: 0.0)(),
+            }
+            save_proposal(payload)
+            if add_proposal:
+                add_proposal(payload)
         dialog = EventTimelineDialog(self)
         dialog.exec()
 
@@ -32,10 +178,87 @@ class RequestRescheduleDialog(QDialog):
         uic.loadUi(ui_path("Request Event Reschedule.ui"), self)
         if hasattr(self, "ViewEventTimeline"):
             self.ViewEventTimeline.clicked.connect(self.open_event_timeline)
+        # Populate dropdowns
+        self._populate_dropdowns()
 
     def open_event_timeline(self):
         dialog = EventTimelineDialog(self)
         dialog.exec()
+
+    def _populate_dropdowns(self):
+        try:
+            from service.events_metadata_service import load_buildings, load_rooms, load_organizers
+            from service.event_proposal_service import list_proposals, get_proposal_by_name
+        except Exception:
+            return
+        # Event Name choices (from all saved proposals)
+        if hasattr(self, "comboBox_4"):
+            self.comboBox_4.clear()
+            for p in list_proposals():
+                name = p.get("eventName", "")
+                if name:
+                    self.comboBox_4.addItem(name)
+            if hasattr(self.comboBox_4, "currentIndexChanged"):
+                self.comboBox_4.currentIndexChanged.connect(lambda _: self._apply_selected_event(get_proposal_by_name))
+        # Buildings -> comboBox
+        if hasattr(self, "comboBox"):
+            self.comboBox.clear()
+            for b in load_buildings():
+                self.comboBox.addItem(b.get("name", ""), b.get("id"))
+        # Rooms -> comboBox_3 (filtered)
+        def refresh_rooms():
+            if not hasattr(self, "comboBox_3"):
+                return
+            self.comboBox_3.clear()
+            sel_building_id = None
+            if hasattr(self, "comboBox") and hasattr(self.comboBox, "currentData"):
+                sel_building_id = self.comboBox.currentData()
+            for r in load_rooms(sel_building_id):
+                self.comboBox_3.addItem(r.get("name", ""))
+        if hasattr(self, "comboBox") and hasattr(self.comboBox, "currentIndexChanged"):
+            self.comboBox.currentIndexChanged.connect(lambda _: refresh_rooms())
+        refresh_rooms()
+        # Organizers -> comboBox_2
+        if hasattr(self, "comboBox_2"):
+            self.comboBox_2.clear()
+            for org in load_organizers():
+                self.comboBox_2.addItem(org.get("name", ""), org.get("id"))
+
+    def _apply_selected_event(self, get_proposal_by_name):
+        if not hasattr(self, "comboBox_4"):
+            return
+        name = self.comboBox_4.currentText()
+        if not name:
+            return
+        proposal = get_proposal_by_name(name) or {}
+        # Set Building
+        if hasattr(self, "comboBox"):
+            idx = self.comboBox.findText(proposal.get("building", ""))
+            if idx >= 0:
+                self.comboBox.setCurrentIndex(idx)
+        # Refresh rooms to match building then set room
+        if hasattr(self, "comboBox_3"):
+            room_name = proposal.get("roomName", "")
+            idx = self.comboBox_3.findText(room_name)
+            if idx >= 0:
+                self.comboBox_3.setCurrentIndex(idx)
+        # Organizer
+        if hasattr(self, "comboBox_2"):
+            idx = self.comboBox_2.findText(proposal.get("organizer", ""))
+            if idx >= 0:
+                self.comboBox_2.setCurrentIndex(idx)
+        # Date/Time
+        try:
+            if hasattr(self, "dateEdit") and proposal.get("date"):
+                from PyQt6.QtCore import QDate
+                y, m, d = [int(x) for x in proposal["date"].split("-")]
+                self.dateEdit.setDate(QDate(y, m, d))
+            if hasattr(self, "timeEdit") and proposal.get("time"):
+                from PyQt6.QtCore import QTime
+                hh, mm = [int(x) for x in proposal["time"].split(":")]
+                self.timeEdit.setTime(QTime(hh, mm))
+        except Exception:
+            pass
 
 class AttendanceDialog(QDialog):
     def __init__(self, parent=None):

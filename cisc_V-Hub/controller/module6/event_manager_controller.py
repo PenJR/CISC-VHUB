@@ -1,5 +1,11 @@
-from PyQt6.QtWidgets import QHeaderView, QWidget, QPushButton
+from PyQt6.QtWidgets import QHeaderView, QWidget, QPushButton, QTableWidget, QTableWidgetItem
 from PyQt6 import uic
+try:
+    from service.attendance_service import load_attendance
+    from service.event_timeline_service import load_timeline
+except Exception:
+    load_attendance = lambda event_name=None: {"records": []}
+    load_timeline = lambda: {"timeline": []}
 
 
 def wire_org_officer_signals(window: object, ui_path_func) -> None:
@@ -52,5 +58,34 @@ def _load_and_show_attendance(window: object, ui_path_func) -> None:
             go_back_btn.clicked.connect(lambda: _show_page(window, 0))
 
     _show_page(window, 1)
+
+    # Populate table if present
+    attendance_widget = getattr(window, "attendance_page", None)
+    if attendance_widget:
+        table = attendance_widget.findChild(QTableWidget, "tableWidget")
+        if table:
+            _populate_attendance_table(table)
+
+
+def _populate_attendance_table(table: QTableWidget) -> None:
+    data = load_attendance().get("records", [])
+    headers = [
+        "Student ID", "Name", "Year", "Section", "Course",
+        "Gender/Sex", "Attendance Status", "Time IN", "Time OUT"
+    ]
+    table.setColumnCount(len(headers))
+    for c, h in enumerate(headers):
+        table.setHorizontalHeaderItem(c, QTableWidgetItem(h))
+    table.setRowCount(len(data))
+    for r, rec in enumerate(data):
+        table.setItem(r, 0, QTableWidgetItem(rec.get("studentId", "")))
+        table.setItem(r, 1, QTableWidgetItem(rec.get("name", "")))
+        table.setItem(r, 2, QTableWidgetItem(rec.get("year", "")))
+        table.setItem(r, 3, QTableWidgetItem(rec.get("section", "")))
+        table.setItem(r, 4, QTableWidgetItem(rec.get("course", "")))
+        table.setItem(r, 5, QTableWidgetItem(rec.get("gender", "")))
+        table.setItem(r, 6, QTableWidgetItem(rec.get("status", "")))
+        table.setItem(r, 7, QTableWidgetItem(str(rec.get("timeIn", ""))))
+        table.setItem(r, 8, QTableWidgetItem(str(rec.get("timeOut", ""))))
 
 
