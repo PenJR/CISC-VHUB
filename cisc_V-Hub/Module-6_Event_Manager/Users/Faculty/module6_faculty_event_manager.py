@@ -40,38 +40,41 @@ class EventTimelineDialog(QDialog):
             self._render_timeline_table(data)
 
     def _add_timeline(self, add_func):
-        # Require a selected cell to infer day/time
+        # Place the requested event on its proposal date/time automatically
         table = getattr(self, "WeekTable_2", None)
-        if table is None or not hasattr(table, "currentRow"):
+        if table is None:
             return
-        row = table.currentRow()
-        col = table.currentColumn()
-        if row < 0 or col < 0:
-            return
-        # Extract headers for time/day
-        v_item = table.verticalHeaderItem(row)
-        h_item = table.horizontalHeaderItem(col)
-        time_label = v_item.text() if v_item else ""
-        day_label = h_item.text() if h_item else ""
-        if not time_label or not day_label:
-            return
-        # Ask for activity text
-        text, ok = QInputDialog.getText(self, "Add Timeline Item", f"Activity for {day_label} @ {time_label}:")
-        if not ok or not text.strip():
-            return
-        # Convert time label like '7:00 AM' to 24h '07:00'
-        hhmm = self._to_24h(time_label)
-        # Attach event name if present
         event_name = None
+        date_str = None
+        time_hhmm = None
+        desc = ""
         try:
-            from service.event_proposal_service import load_proposal
+            from service.event_proposal_service import load_proposal, get_proposal_by_name
             prop = load_proposal() or {}
             event_name = prop.get("eventName")
+            # Prefer exact proposal from name if available
+            if event_name and get_proposal_by_name:
+                p2 = get_proposal_by_name(event_name) or {}
+                if p2:
+                    prop = p2
+            date_str = prop.get("date")
+            time_hhmm = prop.get("time")
+            desc = prop.get("description", "")
         except Exception:
             pass
-        add_func(day_label, hhmm, text.strip(), event_name)
+        if not (event_name and date_str and time_hhmm):
+            return
+        # Compute weekday name from date
+        try:
+            from datetime import datetime
+            day_label = datetime.strptime(date_str, "%Y-%m-%d").strftime("%A")
+        except Exception:
+            return
+        # Save
+        activity = f"{event_name}"
+        add_func(day_label, time_hhmm, activity, event_name)
         # Reflect in UI
-        table.setItem(row, col, QTableWidgetItem(text.strip()))
+        self._place_activity_at(table, day_label, time_hhmm, activity)
 
     def _to_24h(self, label: str) -> str:
         try:
@@ -113,6 +116,27 @@ class EventTimelineDialog(QDialog):
                     break
             if row >= 0 and col >= 0:
                 table.setItem(row, col, QTableWidgetItem(activity))
+
+    def _place_activity_at(self, table, day: str, time_hhmm: str, activity: str):
+        try:
+            from datetime import datetime
+            label = datetime.strptime(time_hhmm, "%H:%M").strftime("%I:%M %p").lstrip("0")
+        except Exception:
+            label = time_hhmm
+        row = -1
+        col = -1
+        for r in range(table.rowCount()):
+            vh = table.verticalHeaderItem(r)
+            if vh and vh.text() == label:
+                row = r
+                break
+        for c in range(table.columnCount()):
+            hh = table.horizontalHeaderItem(c)
+            if hh and hh.text() == day:
+                col = c
+                break
+        if row >= 0 and col >= 0:
+            table.setItem(row, col, QTableWidgetItem(activity))
 
     def _edit_timeline(self, update_func):
         table = getattr(self, "WeekTable_2", None)

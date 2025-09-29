@@ -44,22 +44,27 @@ class EventTimelineDialog(QDialog):
         table = getattr(self, "WeekTable_2", None)
         if table is None:
             return
-        row = table.currentRow()
-        col = table.currentColumn()
-        if row < 0 or col < 0:
+        # Use the requested event's proposal date/time
+        event_name = self._requested_event
+        if not event_name:
             return
-        v_item = table.verticalHeaderItem(row)
-        h_item = table.horizontalHeaderItem(col)
-        time_label = v_item.text() if v_item else ""
-        day_label = h_item.text() if h_item else ""
-        if not time_label or not day_label:
+        try:
+            from service.event_proposal_service import get_proposal_by_name
+            prop = get_proposal_by_name(event_name) or {}
+            date_str = prop.get("date")
+            time_hhmm = prop.get("time")
+        except Exception:
             return
-        text, ok = QInputDialog.getText(self, "Add Timeline Item", f"Activity for {day_label} @ {time_label}:")
-        if not ok or not text.strip():
+        if not (date_str and time_hhmm):
             return
-        hhmm = self._to_24h(time_label)
-        add_func(day_label, hhmm, text.strip(), self._requested_event)
-        table.setItem(row, col, QTableWidgetItem(text.strip()))
+        try:
+            from datetime import datetime
+            day_label = datetime.strptime(date_str, "%Y-%m-%d").strftime("%A")
+        except Exception:
+            return
+        activity = event_name
+        add_func(day_label, time_hhmm, activity, event_name)
+        self._place_activity_at(table, day_label, time_hhmm, activity)
 
     def _to_24h(self, label: str) -> str:
         try:
@@ -97,6 +102,26 @@ class EventTimelineDialog(QDialog):
                     break
             if row >= 0 and col >= 0:
                 table.setItem(row, col, QTableWidgetItem(activity))
+    def _place_activity_at(self, table, day: str, time_hhmm: str, activity: str):
+        try:
+            from datetime import datetime
+            label = datetime.strptime(time_hhmm, "%H:%M").strftime("%I:%M %p").lstrip("0")
+        except Exception:
+            label = time_hhmm
+        row = -1
+        col = -1
+        for r in range(table.rowCount()):
+            vh = table.verticalHeaderItem(r)
+            if vh and vh.text() == label:
+                row = r
+                break
+        for c in range(table.columnCount()):
+            hh = table.horizontalHeaderItem(c)
+            if hh and hh.text() == day:
+                col = c
+                break
+        if row >= 0 and col >= 0:
+            table.setItem(row, col, QTableWidgetItem(activity))
 
     def _edit_timeline(self, update_func):
         table = getattr(self, "WeekTable_2", None)
