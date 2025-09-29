@@ -8,6 +8,10 @@ class ScheduleWindow(QMainWindow):
         super().__init__()
         # Tag role for controller visibility logic
         self.user_role = "student"
+        # Example logged-in student id for personal schedule loading
+        self.student_id = "2025-00001"
+        # Example: this student is in 2nd Year; restrict YearBox to 1st-2nd
+        self.student_year = "2nd Year"
         project_root = os.path.dirname(
             os.path.dirname(
                 os.path.dirname(

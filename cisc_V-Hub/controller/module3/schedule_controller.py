@@ -5,9 +5,11 @@ from datetime import datetime
 try:
     from service.schedule_service import load_schedule
     from service.curriculum_service import load_curriculum
+    from service.students_service import get_student_year
 except Exception:
     load_schedule = lambda student_id=None: {}
     load_curriculum = lambda year_name=None: {}
+    get_student_year = lambda student_id=None: None
 
 
 def wire_schedule_signals(window: object) -> None:
@@ -41,6 +43,7 @@ def wire_schedule_signals(window: object) -> None:
             pass
 
     # Initial populate
+    _restrict_years(window)
     _populate_schedule(window)
 
     # Optional: ensure stacked widget navigation exists
@@ -67,7 +70,14 @@ def _format_time_display(hhmm: str) -> str:
 
 
 def _populate_schedule(window: object) -> None:
-    data = load_schedule(getattr(window, "StudentSearch").text() if hasattr(window, "StudentSearch") else None)
+    student_id = None
+    role = getattr(window, "user_role", "faculty")
+    # Students: use their own id from attribute if provided; Faculty: use search box
+    if role == "student":
+        student_id = getattr(window, "student_id", None)
+    else:
+        student_id = getattr(window, "StudentSearch").text() if hasattr(window, "StudentSearch") else None
+    data = load_schedule(student_id)
     _populate_weekly_table(getattr(window, "WeekTable_2", None), data)
     _populate_today(window)
     _populate_curriculum(window)
@@ -155,5 +165,44 @@ def _fill_semester_table(table: QTableWidget, sem: dict) -> None:
         table.setItem(r, 3, QTableWidgetItem(str(subj.get("units", ""))))
         prereq = ", ".join(subj.get("prerequisites", []) or [])
         table.setItem(r, 4, QTableWidgetItem(prereq))
+
+
+def _restrict_years(window: object) -> None:
+    role = getattr(window, "user_role", "faculty")
+    if role != "student":
+        return
+    box = getattr(window, "YearBox", None)
+    if not box or not hasattr(box, "count"):
+        return
+    # Prefer dynamic lookup by student_id from JSON if available
+    student_year = getattr(window, "student_year", None)
+    if not student_year and hasattr(window, "student_id") and window.student_id:
+        try:
+            student_year = get_student_year(window.student_id) or "1st Year"
+        except Exception:
+            student_year = "1st Year"
+    if not student_year:
+        student_year = "1st Year"
+    order = ["1st Year", "2nd Year", "3rd Year", "4th Year"]
+    if student_year not in order:
+        return
+    max_idx = order.index(student_year)
+    allowed = set(order[: max_idx + 1])
+    # Collect current items
+    current_items = [box.itemText(i) for i in range(box.count())]
+    # If items already match restriction, skip
+    if all(item in allowed for item in current_items) and all(y in current_items for y in allowed):
+        return
+    # Rebuild with allowed items only
+    try:
+        box.blockSignals(True)
+        box.clear()
+        for y in order[: max_idx + 1]:
+            box.addItem(y)
+        # Ensure selection is valid
+        box.setCurrentIndex(min(box.currentIndex() if box.currentIndex() >= 0 else 0, max_idx))
+    finally:
+        box.blockSignals(False)
+    _populate_curriculum(window)
 
 

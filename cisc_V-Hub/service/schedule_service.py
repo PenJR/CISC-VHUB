@@ -9,25 +9,22 @@ def load_schedule(student_id: Optional[str] = None) -> Dict:
     data = read_json_file(FILENAME) or {}
     if not student_id:
         return data
-    if data.get("studentId") == student_id:
-        return data
-    return {}
+    schedules = data.get("schedules", {})
+    return schedules.get(student_id, {"weekly": {}, "today": []})
 
 
-def search_classes_by_day(day: str) -> List[Dict]:
-    data = read_json_file(FILENAME) or {}
+def search_classes_by_day(day: str, student_id: Optional[str] = None) -> List[Dict]:
+    data = load_schedule(student_id)
     weekly = data.get("weekly", {})
     return weekly.get(day, [])
 
 
-def add_class(day: str, time: str, subject: str, room: str) -> Dict:
-    data = read_json_file(FILENAME) or {}
-    if "weekly" not in data:
-        data["weekly"] = {}
-    if day not in data["weekly"]:
-        data["weekly"][day] = []
-    new_item = {"time": time, "subject": subject, "room": room}
-    data["weekly"][day].append(new_item)
-    write_json_file(FILENAME, data)
-    return new_item
+def add_class(student_id: str, day: str, time: str, subject: str, room: str) -> Dict:
+    root = read_json_file(FILENAME) or {}
+    schedules = root.setdefault("schedules", {})
+    sched = schedules.setdefault(student_id, {"weekly": {}, "today": []})
+    weekly = sched.setdefault("weekly", {})
+    weekly.setdefault(day, []).append({"time": time, "subject": subject, "room": room})
+    write_json_file(FILENAME, root)
+    return {"time": time, "subject": subject, "room": room}
 
