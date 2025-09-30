@@ -1,4 +1,5 @@
 import os
+import sys
 from PyQt6 import uic
 from PyQt6.QtWidgets import QApplication, QMainWindow, QHeaderView
 from datetime import datetime
@@ -24,6 +25,10 @@ class ScheduleWindow(QMainWindow):
         )
         uic.loadUi(ui_path, self)
 
+        # Ensure project root is importable for 'controller.*' modules
+        if project_root not in sys.path:
+            sys.path.insert(0, project_root)
+
         # Wire signals via controller
         try:
             from controller.module3.schedule_controller import wire_schedule_signals
@@ -35,6 +40,11 @@ class ScheduleWindow(QMainWindow):
                 self.viewCurriculum.clicked.connect(self.show_curriculum_page)
             if hasattr(self, "Return") and hasattr(self, "show_schedule_page"):
                 self.Return.clicked.connect(self.show_schedule_page)
+            # Fallback: hide search controls for students
+            if hasattr(self, "Search"):
+                self.Search.setVisible(False)
+            if hasattr(self, "StudentSearch"):
+                self.StudentSearch.setVisible(False)
 
         # Ensure all QTableWidgets' columns fit the table width
         self.WeekTable_2.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)

@@ -1,4 +1,5 @@
 import os
+import sys
 from PyQt6 import uic
 from PyQt6.QtWidgets import QApplication, QMainWindow, QHeaderView
 from datetime import datetime
@@ -18,6 +19,10 @@ class ScheduleWindow(QMainWindow):
         )
         ui_path = os.path.join(project_root, "ui", "schedule.ui")
         uic.loadUi(ui_path, self)
+
+        # Ensure project root is importable for 'controller.*' modules
+        if project_root not in sys.path:
+            sys.path.insert(0, project_root)
 
         # Wire signals via controller
         try:
