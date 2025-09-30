@@ -1,162 +1,11 @@
 import os
 from PyQt6 import uic
 from PyQt6.QtWidgets import (
-    QApplication, QMainWindow, QHeaderView, QDialog, QWidget, QPushButton, QInputDialog, QTableWidgetItem, QMessageBox
+    QApplication, QMainWindow, QHeaderView, QDialog, QWidget, QPushButton, QInputDialog, QTableWidgetItem
 )
-from PyQt6.QtCore import QDate, QTime
 
 def ui_path(filename):
     return os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "ui", filename))
-
-class AddActivityDialog(QDialog):
-    def __init__(self, parent=None, event_name=None):
-        super().__init__(parent)
-        uic.loadUi(ui_path("addactivity.ui"), self)
-        self.event_name = event_name
-        self.parent_timeline = parent
-        
-        # Connect the Apply button
-        if hasattr(self, "ApplyActivity"):
-            self.ApplyActivity.clicked.connect(self._apply_activity)
-        
-        # Auto-load data from recent proposals or reschedules
-        self._auto_load_data()
-        
-        # Populate building and room dropdowns
-        self._populate_dropdowns()
-
-    def _auto_load_data(self):
-        """Auto-load data from the most recent proposal or reschedule that matches the event type"""
-        try:
-            from service.event_proposal_service import load_proposal, list_proposals, get_proposal_by_name
-            from service.event_reschedule_service import load_reschedule
-        except Exception:
-            return
-        
-        # Try to get data from reschedule first (more recent)
-        reschedule_data = load_reschedule()
-        if reschedule_data and reschedule_data.get("eventName"):
-            self._populate_form_with_data(reschedule_data)
-            return
-        
-        # If no reschedule, try to get from proposals
-        if self.event_name:
-            # Try to get specific proposal by event name
-            proposal = get_proposal_by_name(self.event_name) if get_proposal_by_name else None
-            if proposal:
-                self._populate_form_with_data(proposal)
-                return
-        
-        # Fallback to the most recent proposal
-        proposals = list_proposals()
-        if proposals:
-            # Get the most recent proposal (last in list)
-            latest_proposal = proposals[-1]
-            self._populate_form_with_data(latest_proposal)
-
-    def _populate_form_with_data(self, data):
-        """Populate the form fields with data from proposal/reschedule"""
-        # Set date
-        if hasattr(self, "dateEdit") and data.get("date"):
-            try:
-                year, month, day = [int(x) for x in data["date"].split("-")]
-                self.dateEdit.setDate(QDate(year, month, day))
-            except Exception:
-                pass
-        
-        # Set time
-        if hasattr(self, "timeEdit") and data.get("time"):
-            try:
-                hour, minute = [int(x) for x in data["time"].split(":")]
-                self.timeEdit.setTime(QTime(hour, minute))
-            except Exception:
-                pass
-
-    def _populate_dropdowns(self):
-        """Populate building and room dropdowns"""
-        try:
-            from service.events_metadata_service import load_buildings, load_rooms
-        except Exception:
-            return
-        
-        # Populate buildings
-        if hasattr(self, "building"):
-            self.building.clear()
-            buildings = load_buildings()
-            for building in buildings:
-                self.building.addItem(building.get("name", ""), building.get("id"))
-        
-        # Populate rooms (will be filtered by selected building)
-        def refresh_rooms():
-            if not hasattr(self, "roomname"):
-                return
-            self.roomname.clear()
-            selected_building_id = None
-            if hasattr(self, "building") and hasattr(self.building, "currentData"):
-                selected_building_id = self.building.currentData()
-            rooms = load_rooms(selected_building_id)
-            for room in rooms:
-                self.roomname.addItem(room.get("name", ""))
-        
-        # Connect building change to refresh rooms
-        if hasattr(self, "building") and hasattr(self.building, "currentIndexChanged"):
-            self.building.currentIndexChanged.connect(lambda _: refresh_rooms())
-        
-        refresh_rooms()
-
-    def _apply_activity(self):
-        """Apply the activity to the event timeline"""
-        try:
-            from service.event_timeline_service import add_timeline_item
-            from datetime import datetime
-        except Exception:
-            QMessageBox.warning(self, "Error", "Failed to import required services")
-            return
-        
-        # Get form data
-        date = self.dateEdit.date().toString("yyyy-MM-dd") if hasattr(self, "dateEdit") else ""
-        time = self.timeEdit.time().toString("HH:mm") if hasattr(self, "timeEdit") else ""
-        building = self.building.currentText() if hasattr(self, "building") else ""
-        room = self.roomname.currentText() if hasattr(self, "roomname") else ""
-        
-        if not date or not time:
-            QMessageBox.warning(self, "Error", "Please select both date and time")
-            return
-        
-        # Convert date to day name
-        try:
-            day_name = datetime.strptime(date, "%Y-%m-%d").strftime("%A")
-        except Exception:
-            QMessageBox.warning(self, "Error", "Invalid date format")
-            return
-        
-        # Create activity description
-        activity_parts = []
-        if building:
-            activity_parts.append(f"Building: {building}")
-        if room:
-            activity_parts.append(f"Room: {room}")
-        
-        activity = " | ".join(activity_parts) if activity_parts else "Activity"
-        
-        # Add to timeline
-        try:
-            add_timeline_item(day_name, time, activity, self.event_name)
-            
-            # Update the parent timeline table if it exists
-            if self.parent_timeline and hasattr(self.parent_timeline, "WeekTable_2"):
-                self.parent_timeline._place_activity_at(
-                    self.parent_timeline.WeekTable_2, 
-                    day_name, 
-                    time, 
-                    activity
-                )
-            
-            QMessageBox.information(self, "Success", "Activity added to timeline successfully")
-            self.accept()
-            
-        except Exception as e:
-            QMessageBox.critical(self, "Error", f"Failed to add activity: {str(e)}")
 
 class EventTimelineDialog(QDialog):
     def __init__(self, parent=None):
@@ -180,8 +29,8 @@ class EventTimelineDialog(QDialog):
             proposals = list_proposals() or []
             if proposals:
                 self._requested_event = proposals[0].get("eventName")
-        if hasattr(self, "Event_Add"):
-            self.Event_Add.clicked.connect(self._open_add_activity_dialog)
+        if hasattr(self, "Event_Add") and add_timeline_item:
+            self.Event_Add.clicked.connect(lambda: self._add_timeline(add_timeline_item))
         if hasattr(self, "Event_Edit") and update_timeline_item:
             self.Event_Edit.clicked.connect(lambda: self._edit_timeline(update_timeline_item))
         if hasattr(self, "Event_Delete") and delete_timeline_item:
@@ -191,10 +40,31 @@ class EventTimelineDialog(QDialog):
             data = load_timeline(self._requested_event)
             self._render_timeline_table(data)
 
-    def _open_add_activity_dialog(self):
-        """Open the AddActivityDialog to add a new activity"""
-        dialog = AddActivityDialog(self, self._requested_event)
-        dialog.exec()
+    def _add_timeline(self, add_func):
+        table = getattr(self, "WeekTable_2", None)
+        if table is None:
+            return
+        # Use the requested event's proposal date/time
+        event_name = self._requested_event
+        if not event_name:
+            return
+        try:
+            from service.event_proposal_service import get_proposal_by_name
+            prop = get_proposal_by_name(event_name) or {}
+            date_str = prop.get("date")
+            time_hhmm = prop.get("time")
+        except Exception:
+            return
+        if not (date_str and time_hhmm):
+            return
+        try:
+            from datetime import datetime
+            day_label = datetime.strptime(date_str, "%Y-%m-%d").strftime("%A")
+        except Exception:
+            return
+        activity = event_name
+        add_func(day_label, time_hhmm, activity, event_name)
+        self._place_activity_at(table, day_label, time_hhmm, activity)
 
     def _to_24h(self, label: str) -> str:
         try:
