@@ -25,6 +25,15 @@ def wire_org_officer_signals(window: object, ui_path_func) -> None:
             if hasattr(table, "resizeRowsToContents"):
                 table.resizeRowsToContents()
 
+    # Toggle Upcoming/Rejected in OrgOfficer UI stacked widget (UpcomingReschedule)
+    stacked = getattr(window, "UpcomingReschedule", None)
+    if stacked and hasattr(stacked, "setCurrentIndex"):
+        # Buttons live on the pages; guard with hasattr
+        if hasattr(window, "UpcomingButton_2"):
+            window.UpcomingButton_2.clicked.connect(lambda: stacked.setCurrentIndex(0))
+        if hasattr(window, "RejectedButton"):
+            window.RejectedButton.clicked.connect(lambda: stacked.setCurrentIndex(1))
+
 
 def wire_faculty_signals(window: object, open_timeline, open_reschedule, open_proposal) -> None:
     # Updated object names from UI: RequestEventProposalButton, RequestRescheduleButton
@@ -32,6 +41,22 @@ def wire_faculty_signals(window: object, open_timeline, open_reschedule, open_pr
         window.RequestEventProposalButton.clicked.connect(open_proposal)
     if hasattr(window, "RequestRescheduleButton"):
         window.RequestRescheduleButton.clicked.connect(open_reschedule)
+
+    # Toggle left-side stacked widget (stackedWidget_2) with Upcoming/Rescheduled buttons
+    left_stack = getattr(window, "stackedWidget_2", None)
+    if left_stack and hasattr(left_stack, "setCurrentIndex"):
+        if hasattr(window, "pushButton_8"):
+            window.pushButton_8.clicked.connect(lambda: left_stack.setCurrentIndex(0))
+        if hasattr(window, "pushButton_9"):
+            window.pushButton_9.clicked.connect(lambda: left_stack.setCurrentIndex(1))
+
+    # Toggle middle proposals stacked widget (stackedWidget_3) with Approved/Rejected buttons
+    mid_stack = getattr(window, "stackedWidget_3", None)
+    if mid_stack and hasattr(mid_stack, "setCurrentIndex"):
+        if hasattr(window, "pushButton_17"):
+            window.pushButton_17.clicked.connect(lambda: mid_stack.setCurrentIndex(0))
+        if hasattr(window, "pushButton_18"):
+            window.pushButton_18.clicked.connect(lambda: mid_stack.setCurrentIndex(1))
 
 
 def _show_page(window: object, index: int) -> None:

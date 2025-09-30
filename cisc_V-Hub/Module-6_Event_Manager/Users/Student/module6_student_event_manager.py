@@ -17,8 +17,11 @@ class EventManagerStudent(QMainWindow):
         try:
             from controller.module6.event_manager_controller import wire_org_officer_signals
             wire_org_officer_signals(self, ui_path)
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"Error wiring Module 6 student signals: {e}")
+            # Fallback: manually connect the attendance button
+            if hasattr(self, "ViewAttendanceButton"):
+                self.ViewAttendanceButton.clicked.connect(self.show_attendance_page)
 
         # Attendance will be lazy-loaded by the controller when needed
 

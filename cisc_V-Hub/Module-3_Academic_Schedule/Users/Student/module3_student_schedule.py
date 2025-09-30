@@ -28,8 +28,13 @@ class ScheduleWindow(QMainWindow):
         try:
             from controller.module3.schedule_controller import wire_schedule_signals
             wire_schedule_signals(self)
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"Error wiring Module 3 student signals: {e}")
+            # Fallback: manually connect the buttons
+            if hasattr(self, "viewCurriculum") and hasattr(self, "show_curriculum_page"):
+                self.viewCurriculum.clicked.connect(self.show_curriculum_page)
+            if hasattr(self, "Return") and hasattr(self, "show_schedule_page"):
+                self.Return.clicked.connect(self.show_schedule_page)
 
         # Ensure all QTableWidgets' columns fit the table width
         self.WeekTable_2.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
