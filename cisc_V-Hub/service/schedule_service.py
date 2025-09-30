@@ -10,7 +10,8 @@ def load_schedule(student_id: Optional[str] = None) -> Dict:
     if not student_id:
         return data
     schedules = data.get("schedules", {})
-    return schedules.get(student_id, {"weekly": {}, "today": []})
+    # return schedules.get(student_id, {"weekly": {}, "today": []})
+    return schedules.get(student_id, {"weekly": {}})#Don't use a separate json block for daily schedules. refering to the week's schedule and selecting it by the current day is preferrable
 
 
 def search_classes_by_day(day: str, student_id: Optional[str] = None) -> List[Dict]:

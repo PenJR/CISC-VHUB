@@ -11,6 +11,8 @@ except Exception:
     load_curriculum = lambda year_name=None: {}
     get_student_year = lambda student_id=None: None
 
+    student_id = None #added this to hold the student id for use in other functions, gets the student id outside
+     #added this to determine if the user is searching or not
 
 def wire_schedule_signals(window: object) -> None:
     # Button connections
@@ -32,8 +34,9 @@ def wire_schedule_signals(window: object) -> None:
         else:
             window.Search.clicked.connect(lambda: _populate_schedule(window))
     if hasattr(window, "Semester"):
+
         try:
-            window.Semester.currentIndexChanged.connect(lambda _=None: _populate_today(window))
+            window.Semester.currentIndexChanged.connect(lambda _=None: _populate_today(window, student_id))
         except Exception:
             pass
     if hasattr(window, "YearBox"):
@@ -59,7 +62,7 @@ _TIMES_DISPLAY = [
     "12:00 PM", "1:00 PM", "2:00 PM", "3:00 PM", "4:00 PM",
     "5:00 PM", "6:00 PM", "7:00 PM",
 ]
-
+searching = False
 
 def _format_time_display(hhmm: str) -> str:
     try:
@@ -77,9 +80,10 @@ def _populate_schedule(window: object) -> None:
         student_id = getattr(window, "student_id", None)
     else:
         student_id = getattr(window, "StudentSearch").text() if hasattr(window, "StudentSearch") else None
+        
     data = load_schedule(student_id)
     _populate_weekly_table(getattr(window, "WeekTable_2", None), data)
-    _populate_today(window)
+    _populate_today(window, student_id) #added student_id to refer to the current user
     _populate_curriculum(window)
 
 
@@ -116,12 +120,25 @@ def _populate_weekly_table(table: QTableWidget | None, schedule: dict) -> None:
             table.setItem(r, c, QTableWidgetItem(text))
 
 
-def _populate_today(window: object) -> None:
+def _populate_today(window: object, student_id) -> None:
     table = getattr(window, "tableWidget_2", None)
     if not table or not isinstance(table, QTableWidget):
         return
     schedule = load_schedule(getattr(window, "StudentSearch").text() if hasattr(window, "StudentSearch") else None)
-    today = schedule.get("today", []) if isinstance(schedule, dict) else []
+    #This is the key fix VVV
+    searching = hasattr(window, "StudentSearch") and window.StudentSearch.isVisible() and window.StudentSearch.text().strip() != ""
+    # today = schedule.get("today", []) if isinstance(schedule, dict) else []#This should still refer to the weekly schedule json block, not a separate today
+    #user schedules are selected
+    #get date today
+    daytoday = datetime.now().strftime("%A")
+    #Specify selection of schedule json block using the student id and the day today
+    if not searching:
+        getusersched = schedule['schedules'][student_id]['weekly'][daytoday]if student_id in schedule['schedules'] else []
+    else:
+        getusersched = schedule['weekly'][daytoday] if 'weekly' in schedule else []
+    searching=False
+    
+    #select the json block of that day of week using the selected parameters
     # Mirror _TIMES_DISPLAY rows
     table.setRowCount(len(_TIMES_DISPLAY))
     table.setColumnCount(1)
@@ -129,7 +146,7 @@ def _populate_today(window: object) -> None:
         item = QTableWidgetItem(label)
         table.setVerticalHeaderItem(r, item)
         table.setItem(r, 0, QTableWidgetItem(""))
-    for entry in today:
+    for entry in getusersched:
         time_disp = _format_time_display(entry.get("time", ""))
         if time_disp in _TIMES_DISPLAY:
             r = _TIMES_DISPLAY.index(time_disp)
