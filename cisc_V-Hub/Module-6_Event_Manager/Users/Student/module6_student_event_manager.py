@@ -1,12 +1,18 @@
 import os
+import sys
 from PyQt6 import uic
 from PyQt6.QtWidgets import (
-    QApplication, QMainWindow, QHeaderView, QWidget, QPushButton
+    QApplication, QMainWindow, QHeaderView, QWidget, QPushButton, QTableWidget, QTableWidgetItem
 )
 
 def ui_path(filename):
     # Returns the absolute path to the shared ui file at project root
     return os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "ui", filename))
+
+# Ensure project root on sys.path so 'controller.*' imports work when running directly
+_project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+if _project_root not in sys.path:
+    sys.path.insert(0, _project_root)
 
 class EventManagerStudent(QMainWindow):
     def __init__(self):
@@ -22,14 +28,56 @@ class EventManagerStudent(QMainWindow):
             # Fallback: manually connect the attendance button
             if hasattr(self, "ViewAttendanceButton"):
                 # Fallback loads Attendance UI and populates from JSON
-                from PyQt6 import uic
-                from controller.module6.event_manager_controller import _populate_attendance_table
+                from PyQt6 import uic as _fallback_uic
+                # Avoid importing controller in fallback; populate directly from attendance_service
+                try:
+                    from service.attendance_service import load_attendance
+                except Exception:
+                    def load_attendance(event_name=None):
+                        return {"records": []}
                 def _fallback_open():
                     attendance_widget = QWidget()
-                    uic.loadUi(ui_path("Attendance.ui"), attendance_widget)
+                    _fallback_uic.loadUi(ui_path("Attendance.ui"), attendance_widget)
+                    # Populate combos
+                    data = load_attendance()
+                    combo_event = attendance_widget.findChild(QWidget, "comboBox")
+                    if combo_event and hasattr(combo_event, "clear") and hasattr(combo_event, "addItem"):
+                        try:
+                            combo_event.clear()
+                            ev = data.get("event") or "Event: Event Name"
+                            combo_event.addItem(ev)
+                        except Exception:
+                            pass
+                    combo_filter = attendance_widget.findChild(QWidget, "comboBox_2")
+                    if combo_filter and hasattr(combo_filter, "clear") and hasattr(combo_filter, "addItem"):
+                        try:
+                            combo_filter.clear()
+                            for f in (data.get("filters") or ["All"]):
+                                combo_filter.addItem(f)
+                        except Exception:
+                            pass
+                    # Populate table
                     table = attendance_widget.findChild(QTableWidget, "tableWidget")
                     if table:
-                        _populate_attendance_table(table)
+                        headers = [
+                            "Student ID", "Name", "Year", "Section", "Course",
+                            "Gender/Sex", "Attendance Status", "Time IN", "Time OUT"
+                        ]
+                        table.setColumnCount(len(headers))
+                        for c, h in enumerate(headers):
+                            table.setHorizontalHeaderItem(c, QTableWidgetItem(h))
+                        recs = data.get("records", [])
+                        table.setRowCount(len(recs))
+                        for r, rec in enumerate(recs):
+                            table.setItem(r, 0, QTableWidgetItem(rec.get("studentId", "")))
+                            table.setItem(r, 1, QTableWidgetItem(rec.get("name", "")))
+                            table.setItem(r, 2, QTableWidgetItem(rec.get("year", "")))
+                            table.setItem(r, 3, QTableWidgetItem(rec.get("section", "")))
+                            table.setItem(r, 4, QTableWidgetItem(rec.get("course", "")))
+                            table.setItem(r, 5, QTableWidgetItem(rec.get("gender", "")))
+                            table.setItem(r, 6, QTableWidgetItem(rec.get("status", "")))
+                            table.setItem(r, 7, QTableWidgetItem(str(rec.get("timeIn", ""))))
+                            table.setItem(r, 8, QTableWidgetItem(str(rec.get("timeOut", ""))))
                     # Insert into stacked widget at index 1
                     if hasattr(self, "stackedWidget"):
                         if self.stackedWidget.count() > 1:
