@@ -40,41 +40,50 @@ class EventTimelineDialog(QDialog):
             self._render_timeline_table(data)
 
     def _add_timeline(self, add_func):
-        # Place the requested event on its proposal date/time automatically
-        table = getattr(self, "WeekTable_2", None)
-        if table is None:
-            return
-        event_name = None
-        date_str = None
-        time_hhmm = None
-        desc = ""
+        # Open Add Activity dialog, prefilled from current proposal if available
+        dialog = AddActivityDialog(self)
+        prop = {}
         try:
             from service.event_proposal_service import load_proposal, get_proposal_by_name
-            prop = load_proposal() or {}
-            event_name = prop.get("eventName")
-            # Prefer exact proposal from name if available
-            if event_name and get_proposal_by_name:
-                p2 = get_proposal_by_name(event_name) or {}
-                if p2:
-                    prop = p2
-            date_str = prop.get("date")
-            time_hhmm = prop.get("time")
-            desc = prop.get("description", "")
+            base = load_proposal() or {}
+            name = base.get("eventName")
+            prop = get_proposal_by_name(name) or base
+            if hasattr(dialog, "dateEdit") and prop.get("date"):
+                from PyQt6.QtCore import QDate
+                y, m, d = [int(x) for x in prop["date"].split("-")]
+                dialog.dateEdit.setDate(QDate(y, m, d))
+            if hasattr(dialog, "timeEdit") and prop.get("time"):
+                from PyQt6.QtCore import QTime
+                hh, mm = [int(x) for x in prop["time"].split(":")]
+                dialog.timeEdit.setTime(QTime(hh, mm))
+            if hasattr(dialog, "building") and prop.get("building"):
+                idx = dialog.building.findText(prop.get("building", ""))
+                if idx >= 0:
+                    dialog.building.setCurrentIndex(idx)
+            if hasattr(dialog, "roomname") and prop.get("roomName"):
+                idx = dialog.roomname.findText(prop.get("roomName", ""))
+                if idx >= 0:
+                    dialog.roomname.setCurrentIndex(idx)
         except Exception:
             pass
-        if not (event_name and date_str and time_hhmm):
-            return
-        # Compute weekday name from date
-        try:
-            from datetime import datetime
-            day_label = datetime.strptime(date_str, "%Y-%m-%d").strftime("%A")
-        except Exception:
-            return
-        # Save
-        activity = f"{event_name}"
-        add_func(day_label, time_hhmm, activity, event_name)
-        # Reflect in UI
-        self._place_activity_at(table, day_label, time_hhmm, activity)
+        if dialog.exec() == dialog.DialogCode.Accepted:
+            data = dialog.get_activity_data()
+            if not data:
+                return
+            day_label = data.get("day")
+            time_hhmm = data.get("time")
+            activity = data.get("activity")
+            building = data.get("building")
+            room = data.get("room")
+            event_name = prop.get("eventName")
+            if day_label and time_hhmm and activity:
+                if callable(add_func):
+                    try:
+                        add_func(day_label, time_hhmm, activity, event_name, building=building, room=room)
+                    except Exception:
+                        pass
+                table = getattr(self, "WeekTable_2", None)
+                self._place_activity_at(table, day_label, time_hhmm, activity)
 
     def _to_24h(self, label: str) -> str:
         try:
