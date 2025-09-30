@@ -21,7 +21,24 @@ class EventManagerStudent(QMainWindow):
             print(f"Error wiring Module 6 student signals: {e}")
             # Fallback: manually connect the attendance button
             if hasattr(self, "ViewAttendanceButton"):
-                self.ViewAttendanceButton.clicked.connect(self.show_attendance_page)
+                # Fallback loads Attendance UI and populates from JSON
+                from PyQt6 import uic
+                from controller.module6.event_manager_controller import _populate_attendance_table
+                def _fallback_open():
+                    attendance_widget = QWidget()
+                    uic.loadUi(ui_path("Attendance.ui"), attendance_widget)
+                    table = attendance_widget.findChild(QTableWidget, "tableWidget")
+                    if table:
+                        _populate_attendance_table(table)
+                    # Insert into stacked widget at index 1
+                    if hasattr(self, "stackedWidget"):
+                        if self.stackedWidget.count() > 1:
+                            self.stackedWidget.removeWidget(self.stackedWidget.widget(1))
+                            self.stackedWidget.insertWidget(1, attendance_widget)
+                        else:
+                            self.stackedWidget.insertWidget(1, attendance_widget)
+                    self.stackedWidget.setCurrentIndex(1)
+                self.ViewAttendanceButton.clicked.connect(_fallback_open)
 
         # Attendance will be lazy-loaded by the controller when needed
 

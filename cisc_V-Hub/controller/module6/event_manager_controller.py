@@ -87,6 +87,27 @@ def _load_and_show_attendance(window: object, ui_path_func) -> None:
     # Populate table if present
     attendance_widget = getattr(window, "attendance_page", None)
     if attendance_widget:
+        # Populate event and filter combos if available
+        try:
+            data = load_attendance()
+        except Exception:
+            data = {"records": []}
+        combo_event = attendance_widget.findChild(QWidget, "comboBox")
+        if combo_event and hasattr(combo_event, "clear") and hasattr(combo_event, "addItem"):
+            try:
+                combo_event.clear()
+                ev = data.get("event") or "Event: Event Name"
+                combo_event.addItem(ev)
+            except Exception:
+                pass
+        combo_filter = attendance_widget.findChild(QWidget, "comboBox_2")
+        if combo_filter and hasattr(combo_filter, "clear") and hasattr(combo_filter, "addItem"):
+            try:
+                combo_filter.clear()
+                for f in (data.get("filters") or ["All"]):
+                    combo_filter.addItem(f)
+            except Exception:
+                pass
         table = attendance_widget.findChild(QTableWidget, "tableWidget")
         if table:
             _populate_attendance_table(table)

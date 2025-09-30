@@ -1,11 +1,17 @@
 import os
+import sys
 from PyQt6 import uic
 from PyQt6.QtWidgets import (
-    QApplication, QMainWindow, QHeaderView, QDialog, QWidget, QPushButton, QInputDialog, QTableWidgetItem
+    QApplication, QMainWindow, QHeaderView, QDialog, QWidget, QPushButton, QInputDialog, QTableWidgetItem, QTableWidget
 )
 
 def ui_path(filename):
     return os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "ui", filename))
+
+# Ensure project root is importable for 'controller.*' modules when running directly
+_project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+if _project_root not in sys.path:
+    sys.path.insert(0, _project_root)
 
 class EventTimelineDialog(QDialog):
     def __init__(self, parent=None):
@@ -323,9 +329,24 @@ class OrgOfficerWindow(QMainWindow):
             wire_org_officer_signals(self, ui_path)
         except Exception as e:
             print(f"Error wiring Module 6 org officer signals: {e}")
-            # Fallback: manually connect the attendance button
+            # Fallback: load Attendance UI and populate from JSON
             if hasattr(self, "ViewAttendanceButton"):
-                self.ViewAttendanceButton.clicked.connect(self.show_attendance_page)
+                from PyQt6 import uic as _fallback_uic
+                from controller.module6.event_manager_controller import _populate_attendance_table as _fallback_pop
+                def _fallback_open():
+                    attendance_widget = QWidget()
+                    _fallback_uic.loadUi(ui_path("Attendance.ui"), attendance_widget)
+                    table = attendance_widget.findChild(QTableWidget, "tableWidget")
+                    if table:
+                        _fallback_pop(table)
+                    if hasattr(self, "stackedWidget"):
+                        if self.stackedWidget.count() > 1:
+                            self.stackedWidget.removeWidget(self.stackedWidget.widget(1))
+                            self.stackedWidget.insertWidget(1, attendance_widget)
+                        else:
+                            self.stackedWidget.insertWidget(1, attendance_widget)
+                    self.stackedWidget.setCurrentIndex(1)
+                self.ViewAttendanceButton.clicked.connect(_fallback_open)
 
         # Make all table columns fit the table width and rows fit contents
         for table_name in [
