@@ -8,6 +8,9 @@ def ui_path(filename):
     # Returns the absolute path to the shared ui file at project root
     return os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "ui", filename))
 
+def AddActivityDialog(parent=None):
+    raise NotImplementedError
+
 class EventTimelineDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
